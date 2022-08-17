@@ -6,10 +6,10 @@
 ambient_light_color = Color( 0.419608, 0.556863, 0.647059, 1 )
 
 [sub_resource type="BoxShape" id=3]
-extents = Vector3( 5, 3, 8 )
+extents = Vector3( 10, 3, 8 )
 
 [sub_resource type="CubeMesh" id=2]
-size = Vector3( 10, 6, 16 )
+size = Vector3( 20, 6, 16 )
 
 [node name="World" type="Node"]
 
