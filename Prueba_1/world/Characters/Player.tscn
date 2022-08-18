@@ -57,11 +57,12 @@ script = ExtResource( 2 )
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 7 )
 current = true
 
-[node name="CameraPivot" type="Spatial" parent="."]
+[node name="SecondarySpringarm" type="SpringArm" parent="."]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, 0 )
+margin = 0.5
 script = ExtResource( 3 )
 
-[node name="Camera" type="Camera" parent="CameraPivot"]
-transform = Transform( 1, 0, 0, 0, 0.697002, -0.717069, 0, 0.717069, 0.697002, 0, 0.848482, 1.37624 )
+[node name="SecondaryCamera" type="Camera" parent="SecondarySpringarm"]
 
 [node name="Area" type="Area" parent="."]
 
