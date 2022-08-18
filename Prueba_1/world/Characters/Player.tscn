@@ -23,8 +23,9 @@ size = Vector3( 0.2, 0.2, 2 )
 radius = 0.5
 height = 2.0
 
-[sub_resource type="CylinderShape" id=6]
+[sub_resource type="CapsuleShape" id=6]
 radius = 0.5
+height = 2.0
 
 [node name="Player" type="KinematicBody"]
 transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0 )
@@ -67,6 +68,7 @@ script = ExtResource( 3 )
 [node name="Area" type="Area" parent="."]
 
 [node name="CollisionShape" type="CollisionShape" parent="Area"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 0, 0 )
 shape = SubResource( 6 )
 disabled = true
 

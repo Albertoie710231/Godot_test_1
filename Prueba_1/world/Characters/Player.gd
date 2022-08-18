@@ -20,9 +20,14 @@ onready var _collision_shape : CollisionShape = $CollisionShape
 onready var _area_shape : CollisionShape = $Area/CollisionShape
 onready var _secundary_camera : SpringArm = $SecondarySpringarm
 
+
+signal ready_signal()
+
 func _process(_delta:float) -> void:
-	_spring_arm.translation = self.translation
-	_secundary_camera.translation = self.translation
+	if _spring_arm.get_node("Camera").current:
+		_spring_arm.translation = self.translation
+	elif _secundary_camera.get_node("SecondaryCamera").current:
+		_secundary_camera.translation = self.translation
 
 func _physics_process(delta:float) -> void:
 	if ready_func() == false:
@@ -30,9 +35,6 @@ func _physics_process(delta:float) -> void:
 	else:
 		warp_func()
 		action_movement(delta)
-	
-	if _velocity.length() < 1.0 and _velocity.length() > 0.0:
-		_model.rotation.y = temp_rotation
 
 func imput_movement(input_vector:Vector3, rotating_object:Node) -> Vector3:
 	input_vector.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
@@ -66,7 +68,6 @@ func movement_func(delta:float) -> void:
 	if is_moving_on_floor:
 		var look_direction = Vector2(-_velocity.z, -_velocity.x)
 		_model.rotation.y = look_direction.angle()
-		temp_rotation = _model.rotation.y
 
 func action_movement(delta) -> void:
 	var input_vector = Vector3.ZERO
@@ -96,6 +97,7 @@ func ready_func() -> bool:
 		ready_flag = !ready_flag
 		_spring_arm.get_node("Camera").current = !ready_flag
 		_secundary_camera.get_node("SecondaryCamera").current = ready_flag
+		emit_signal("ready_signal")
 	return ready_flag
 
 func warp_func() -> void:
