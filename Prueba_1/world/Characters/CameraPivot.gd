@@ -6,9 +6,9 @@ export var controller_sesitivity = 0.1
 func _ready():
 	set_as_toplevel(true)
 	var player_node = get_parent()
-	player_node.connect("ready_signal", self, "tilt_secondary_camera")
+	#player_node.connect("ready_signal", self, "tilt_secondary_camera")
 
-func tilt_secondary_camera():
+func _physics_process(delta):
 	if get_node("SecondaryCamera").current == true:
 		var direct_state = get_world().direct_space_state
 		var collider = direct_state.intersect_ray(get_parent().transform.origin, Vector3(0, 1000.0, 0))
