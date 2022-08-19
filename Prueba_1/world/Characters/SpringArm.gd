@@ -6,7 +6,14 @@ export var controller_sesitivity = 0.1
 func _ready():
 	set_as_toplevel(true)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	var player_node = get_parent()
+	player_node.connect("ready_signal", self, "toogle_disabled_camera")
 	
+
+func toogle_disabled_camera():
+	var get_current = get_node("Camera").is_current()
+	get_node("Camera").set_current(!get_current)
+
 func _unhandled_input(event):
 	if event.is_action_pressed("click"):
 		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)

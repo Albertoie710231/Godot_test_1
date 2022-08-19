@@ -7,12 +7,20 @@ export var air_friction : float = 10.0
 export var gravity : float = 50.0
 export var jump_impulse : float = 20.0
 
+var is_valid_area = false
 var _velocity : Vector3 = Vector3.ZERO
 var _snap_vector : Vector3 = Vector3.DOWN
 var ready_flag : bool = false
-var action_flag : bool = false
 var temp_rotation : float = 0.0
 var body_entered_exited_list : Array = []
+
+enum state_name {
+	NORMAL,
+	READY,
+	ACTION
+}
+
+var state = state_name.NORMAL
 
 onready var _spring_arm : SpringArm = $SpringArm
 onready var _model : Spatial = $Pivot
@@ -23,18 +31,32 @@ onready var _secundary_camera : SpringArm = $SecondarySpringarm
 
 signal ready_signal()
 
+func _unhandled_key_input(_event):
+	if Input.is_action_just_pressed("ready_button"):
+		emit_signal("ready_signal")
+		if state == state_name.NORMAL:
+			state = state_name.READY
+		elif state == state_name.READY:
+			state = state_name.NORMAL
+	elif Input.is_action_just_pressed("action_button") and state == state_name.READY and is_valid_area:
+		state = state_name.ACTION
+		
+	#print(state_name.keys()[state])
+
 func _process(_delta:float) -> void:
-	if _spring_arm.get_node("Camera").current:
-		_spring_arm.translation = self.translation
-	elif _secundary_camera.get_node("SecondaryCamera").current:
-		_secundary_camera.translation = self.translation
+	_spring_arm.translation = self.translation
+	_secundary_camera.translation = self.translation
 
 func _physics_process(delta:float) -> void:
-	if ready_func() == false:
-		movement_func(delta)
-	else:
-		warp_func()
-		action_movement(delta)
+	match state:
+		state_name.NORMAL:
+			movement_func(delta)
+		state_name.READY:
+			is_valid_area = ready_func()
+			ready_movement(delta)
+		state_name.ACTION:
+			action_func()
+			ready_movement(delta)
 
 func imput_movement(input_vector:Vector3, rotating_object:Node) -> Vector3:
 	input_vector.x = Input.get_action_strength("move_right") - Input.get_action_strength("move_left")
@@ -63,76 +85,75 @@ func movement_func(delta:float) -> void:
 		
 	_velocity = move_and_slide_with_snap(_velocity, _snap_vector, Vector3.UP, true)
 	
-	var is_moving_on_floor : bool = Vector2(_velocity.z,_velocity.x).length() != 0.0
+	var is_moving_on_floor : bool = Vector2(_velocity.z,_velocity.x).length() > 0.2
 	
 	if is_moving_on_floor:
 		var look_direction = Vector2(-_velocity.z, -_velocity.x)
-		_model.rotation.y = look_direction.angle()
+		_model.rotation.y = lerp_angle(_model.rotation.y,look_direction.angle(),0.7)
 
-func action_movement(delta) -> void:
+func ready_movement(delta) -> void:
 	var input_vector = Vector3.ZERO
 	input_vector = imput_movement(input_vector, _secundary_camera)
 	
-	if action_flag == false:
+	if state == state_name.READY:
 		_velocity.x = input_vector.x * max_speed
 		_velocity.z = input_vector.z * max_speed
 		_velocity.y -= gravity * delta
-		_snap_vector = Vector3.DOWN
-	else:
+	elif state == state_name.ACTION:
 		_velocity.x = 0.0
 		_velocity.z = 0.0
 		_velocity.y = 10
-		_snap_vector = Vector3.ZERO
 	
-	_velocity = move_and_slide_with_snap(_velocity, _snap_vector, Vector3.UP, true)
+	_velocity = move_and_slide(_velocity, Vector3.UP)
 	
-	var is_moving_on_floor : bool = Vector2(_velocity.z,_velocity.x).length() != 0.0
+	var is_moving_on_floor : bool = Vector2(_velocity.z,_velocity.x).length() > 0.2
 	
 	if is_moving_on_floor:
 		var look_direction = Vector2(-_velocity.z, -_velocity.x)
-		_model.rotation.y = look_direction.angle()
+		_model.rotation.y = lerp_angle(_model.rotation.y,look_direction.angle(),0.7)
 
 func ready_func() -> bool:
-	if Input.is_action_just_pressed("ready_button") and action_flag == false:
-		ready_flag = !ready_flag
-		_spring_arm.get_node("Camera").current = !ready_flag
-		_secundary_camera.get_node("SecondaryCamera").current = ready_flag
-		emit_signal("ready_signal")
-	return ready_flag
+	var valid_area = false
+	var direct_state = get_world().direct_space_state
+	var collider_1 = direct_state.intersect_ray(transform.origin + Vector3(0,0,1), Vector3(0, 1000.0, 0))
+	var collider_2 = direct_state.intersect_ray(transform.origin + Vector3(0.8660,0,0.5), Vector3(0, 1000.0, 0))
+	var collider_3 = direct_state.intersect_ray(transform.origin + Vector3(0.8660,0,-0.5), Vector3(0, 1000.0, 0))
+	var collider_4 = direct_state.intersect_ray(transform.origin + Vector3(0,0,-1), Vector3(0, 1000.0, 0))
+	var collider_5 = direct_state.intersect_ray(transform.origin + Vector3(-0.8660,0,0.5), Vector3(0, 1000.0, 0))
+	var collider_6 = direct_state.intersect_ray(transform.origin + Vector3(-0.8660,0,-0.5), Vector3(0, 1000.0, 0))
+	
+	if collider_1 and collider_2 and collider_3 and collider_4 and collider_5 and collider_6:
+		collider_1.position.y -= transform.origin.y 
+		collider_2.position.y -= transform.origin.y 
+		collider_3.position.y -= transform.origin.y 
+		collider_4.position.y -= transform.origin.y 
+		collider_5.position.y -= transform.origin.y 
+		collider_6.position.y -= transform.origin.y
+		valid_area = true
+	
+	return valid_area
+		#action_just_pressed("action_button"):
+			#_spring_arm.get_node("Camera").current = true
+			#_secundary_camera.get_node("SecondaryCamera").current = false
+			#state = ACTION
+			#_collision_shape.disabled = true
+			#_area_shape.disabled = false
 
-func warp_func() -> void:
-	if ready_flag == true:
-		var direct_state = get_world().direct_space_state
-		var collider_1 = direct_state.intersect_ray(transform.origin + Vector3(0,0,1), Vector3(0, 1000.0, 0))
-		var collider_2 = direct_state.intersect_ray(transform.origin + Vector3(0.8660,0,0.5), Vector3(0, 1000.0, 0))
-		var collider_3 = direct_state.intersect_ray(transform.origin + Vector3(0.8660,0,-0.5), Vector3(0, 1000.0, 0))
-		var collider_4 = direct_state.intersect_ray(transform.origin + Vector3(0,0,-1), Vector3(0, 1000.0, 0))
-		var collider_5 = direct_state.intersect_ray(transform.origin + Vector3(-0.8660,0,0.5), Vector3(0, 1000.0, 0))
-		var collider_6 = direct_state.intersect_ray(transform.origin + Vector3(-0.8660,0,-0.5), Vector3(0, 1000.0, 0))
-		
-		
-		if collider_1 and collider_2 and collider_3 and collider_4 and collider_5 and collider_6:
-			collider_1.position.y -= transform.origin.y 
-			collider_2.position.y -= transform.origin.y 
-			collider_3.position.y -= transform.origin.y 
-			collider_4.position.y -= transform.origin.y 
-			collider_5.position.y -= transform.origin.y 
-			collider_6.position.y -= transform.origin.y 
-			if Input.is_action_just_pressed("action_button"):
-				_spring_arm.get_node("Camera").current = true
-				_secundary_camera.get_node("SecondaryCamera").current = false
-				action_flag = true
-				_collision_shape.disabled = true
-				_area_shape.disabled = false
-		
-		if body_entered_exited_list.size() > 1 and action_flag == true:
-			for i in range(1,body_entered_exited_list.size(),2):
-				if body_entered_exited_list[i] == 0:
-					ready_flag = false
-					action_flag = false
-					_collision_shape.disabled = false
-					_area_shape.disabled = true
-					body_entered_exited_list = []
+func action_func():
+	if is_valid_area:
+		emit_signal("ready_signal")
+		state = state_name.ACTION
+		_collision_shape.disabled = true
+		_area_shape.disabled = false
+		is_valid_area = false
+	
+	if body_entered_exited_list.size() > 1:
+		for i in range(1,body_entered_exited_list.size(),2):
+			if body_entered_exited_list[i] == 0:
+				_collision_shape.disabled = false
+				_area_shape.disabled = true
+				body_entered_exited_list = []
+				state = state_name.NORMAL
 
 func _on_Area_body_entered(_body:Node):
 	body_entered_exited_list.append(1)
